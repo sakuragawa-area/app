@@ -36,6 +36,8 @@
       min-height: 100vh;
       padding: 24px;
       text-align: center;
+ 	 /* 現在の中央位置から、上方向に少しずらす（例: 50px分上に移動） */
+  	transform: translateY(-80px); 
     }
 
     /* ロゴ画像の設定 */
@@ -81,7 +83,7 @@
 
     .input-box:focus {
       border-color: #b3395b;
-      box-shadow: 0 0 0 4px rgba(250, 60, 101, 0.15);
+      box-shadow: 0 0 0 4px rgba(135, 18, 43, 0.15);
     }
 
     /* 大きめの開始ボタン */
@@ -96,7 +98,7 @@
       border: none;
       border-radius: 12px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(250, 60, 101, 0.3);
+      box-shadow: 0 4px 12px rgba(135, 18, 43, 0.3);
       transition: background-color 0.2s ease, transform 0.1s ease;
       -webkit-appearance: none;
     }
