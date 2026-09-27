@@ -117,6 +117,10 @@
       min-height: 20px;
     }
 
+    .size_small {
+        font-size:  13px;    /* 文字サイズ指定 */
+    }
+
     /* 起動中（ローディング）用スタイリング */
     .loading-box {
       display: flex;
@@ -152,8 +156,11 @@
       <input type="text" id="username-input" class="input-box" placeholder="例：山田太郎" autocomplete="off" oninput="updateButtonText()">
       <button id="submit-btn" onclick="saveAndStart()" class="btn-submit">アプリを開始</button>
       <div id="error-message" class="error-msg"></div>
-	・ホーム画面追加やブックマークはこの画面で行なってください<br>
-	・開始後のGoogle注意表示は右上のⅩで消せます
+	   <div class="size_small"><br>
+        ・ホーム画面追加やブックマークはこの画面で。<br>
+	（毎回この画面から開始してください）<br><br>
+	・開始後のGoogle注意表示は右上のⅩで消去。
+      </div>
     </div>
 
     <!-- ボタン押下後の起動中画面 -->
@@ -214,7 +221,7 @@
 
       // 2. 文字数チェック（3文字未満）
       if (inputVal.length < 3) {
-        errorEl.textContent = "文字数が足りません";
+        errorEl.textContent = "名前の文字数が足りません";
         return;
       }
 
