@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>桜川奉仕区域</title>
+
+  <!-- アイコン関連 -->
+  <link rel="icon" href="https://raw.githubusercontent.com/sakuragawa-area/sakuragawa-favicon/main/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/sakuragawa-area/sakuragawa-favicon/main/apple-touch-icon.png">
+  
+  <!-- iOSホーム画面追加用の設定（全画面アプリ化） -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="桜川奉仕区域">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #333333;
+    }
+
+    /* 全体を画面中央（上下左右）に寄せるコンテナ */
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px;
+      text-align: center;
+    }
+
+    /* ロゴ画像の設定 */
+    .logo-img {
+      max-width: 360px;
+      width: 95%;
+      height: auto;
+      margin-bottom: 24px;
+      object-fit: contain;
+    }
+
+    /* 入力フォームカード */
+    .form-card {
+      width: 100%;
+      max-width: 340px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .form-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: #555555;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    /* 大きめの入力ボックス */
+    .input-box {
+      width: 70%;
+      height: 52px;
+      font-size: 18px;
+      padding: 0 16px;
+      border: 2px solid #cccccc;
+      // border-radius: 12px;
+      // text-align: center;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      background-color: #ffffff;
+      -webkit-appearance: none;
+    }
+
+    .input-box:focus {
+      border-color: #b3395b;
+      box-shadow: 0 0 0 4px rgba(250, 60, 101, 0.15);
+    }
+
+    /* 大きめの開始ボタン */
+    .btn-submit {
+      width: 100%;
+      height: 52px;
+      margin-top: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffffff;
+      background-color: #b3395b;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(250, 60, 101, 0.3);
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      -webkit-appearance: none;
+    }
+
+    .btn-submit:active {
+      background-color: #91193a;
+      transform: scale(0.98);
+    }
+
+    /* エラーメッセージ */
+    .error-msg {
+      margin-top: 12px;
+      font-size: 14px;
+      color: #e53935;
+      font-weight: bold;
+      min-height: 20px;
+    }
+
+    /* 起動中（ローディング）用スタイリング */
+    .loading-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 4px solid #e0e0e0;
+      border-top: 4px solid #2196F3;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-top: 16px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- タイトルロゴ -->
+    <img src="https://raw.githubusercontent.com/sakuragawa-area/sakuragawa-favicon/main/logo.png" alt="桜川奉仕区域 ロゴ" class="logo-img">
+
+    <!-- 名前入力フォーム（常に表示） -->
+    <div id="setup-form" class="form-card">
+      <label class="form-label" for="username-input">
+        アプリで使用する名前を入力<br>（フルネーム空白なし）
+      </label>
+      <input type="text" id="username-input" class="input-box" placeholder="例：山田太郎" autocomplete="off" oninput="updateButtonText()">
+      <button id="submit-btn" onclick="saveAndStart()" class="btn-submit">アプリを開始</button>
+      <div id="error-message" class="error-msg"></div>
+	・ホーム画面追加やブックマークはこの画面で行なってください<br>
+	・開始後のGoogle注意表示は右上のⅩで消せます
+    </div>
+
+    <!-- ボタン押下後の起動中画面 -->
+    <div id="loading-box" class="loading-box" style="display: none;">
+      <div class="form-label" id="welcome-text">アプリを起動中...</div>
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyZ-aT16KVxNBCUYjgcno3k-PASB_j0pY_8whziwxI5RKwgmZo8HABs6zVj6kTpK2C5sg/exec";
+    const SECRET_KEY = "SakuragawaSecretKey_";
+
+    // 暗号化関数
+    function encodeToken(text) {
+      const rawString = SECRET_KEY + text;
+      const bytes = new TextEncoder().encode(rawString);
+      const binString = String.fromCharCode(...bytes);
+      return btoa(binString)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    }
+
+    // 入力文字に応じてボタン表示を変更
+    function updateButtonText() {
+      const inputVal = document.getElementById("username-input").value.trim();
+      const btn = document.getElementById("submit-btn");
+      if (inputVal.length >= 3 && !/\s/.test(inputVal)) {
+        btn.textContent = `${inputVal} として開始`;
+      } else {
+        btn.textContent = "アプリを開始";
+      }
+    }
+
+    // ページ読み込み時：ローカルストレージに名前があれば入力欄にセット
+    window.onload = function() {
+      const savedName = localStorage.getItem("app_user_name");
+      if (savedName) {
+        document.getElementById("username-input").value = savedName;
+        updateButtonText();
+      }
+    };
+
+    // 開始ボタン押下時の処理
+    function saveAndStart() {
+      const inputEl = document.getElementById("username-input");
+      const errorEl = document.getElementById("error-message");
+      const inputVal = inputEl.value.trim();
+
+      errorEl.textContent = "";
+
+      // 1. 空白チェック
+      if (/\s/.test(inputEl.value)) {
+        errorEl.textContent = "空白は入れないでください";
+        return;
+      }
+
+      // 2. 文字数チェック（3文字未満）
+      if (inputVal.length < 3) {
+        errorEl.textContent = "文字数が足りません";
+        return;
+      }
+
+      // 名前を保存・更新
+      localStorage.setItem("app_user_name", inputVal);
+
+      // 画面切り替え＆遷移
+      document.getElementById("setup-form").style.display = "none";
+      document.getElementById("welcome-text").textContent = `${inputVal} さんとして起動中...`;
+      document.getElementById("loading-box").style.display = "flex";
+
+      const token = encodeToken(inputVal);
+      window.location.href = `${GAS_URL}?token=${token}`;
+    }
+  </script>
+</body>
+</html>
