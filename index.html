@@ -36,8 +36,8 @@
       min-height: 100vh;
       padding: 24px;
       text-align: center;
- 	 /* 現在の中央位置から、上方向に少しずらす（例: 50px分上に移動） */
-  	transform: translateY(-80px); 
+      /* 現在の中央位置から、上方向に少しずらす（例: 50px分上に移動） */
+      transform: translateY(-80px); 
     }
 
     /* ロゴ画像の設定 */
@@ -156,10 +156,10 @@
       <input type="text" id="username-input" class="input-box" placeholder="例：山田太郎" autocomplete="off" oninput="updateButtonText()">
       <button id="submit-btn" onclick="saveAndStart()" class="btn-submit">アプリを開始</button>
       <div id="error-message" class="error-msg"></div>
-	   <div class="size_small"><br>
+       <div class="size_small"><br>
         ・ホーム画面追加やブックマークはこの画面で。<br>
-	（毎回この画面から開始してください）<br><br>
-	・開始後のGoogle注意表示は右上のⅩで消去。
+    （毎回この画面から開始してください）<br><br>
+    ・開始後のGoogle注意表示は右上のⅩで消去。
       </div>
     </div>
 
@@ -204,6 +204,12 @@
         updateButtonText();
       }
     };
+
+    // 戻るボタンでページが復元された際のローディング解除処理
+    window.addEventListener("pageshow", function(event) {
+      document.getElementById("setup-form").style.display = "flex";
+      document.getElementById("loading-box").style.display = "none";
+    });
 
     // 開始ボタン押下時の処理
     function saveAndStart() {
