@@ -73,8 +73,6 @@
       font-size: 18px;
       padding: 0 16px;
       border: 2px solid #cccccc;
-      // border-radius: 12px;
-      // text-align: center;
       outline: none;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
       background-color: #ffffff;
@@ -118,7 +116,7 @@
     }
 
     .size_small {
-        font-size:  13px;    /* 文字サイズ指定 */
+      font-size: 13px;
     }
 
     /* 起動中（ローディング）用スタイリング */
@@ -156,10 +154,10 @@
       <input type="text" id="username-input" class="input-box" placeholder="例：山田太郎" autocomplete="off" oninput="updateButtonText()">
       <button id="submit-btn" onclick="saveAndStart()" class="btn-submit">アプリを開始</button>
       <div id="error-message" class="error-msg"></div>
-       <div class="size_small"><br>
+      <div class="size_small"><br>
         ・ホーム画面追加やブックマークはこの画面で。<br>
-    （毎回この画面から開始してください）<br><br>
-    ・開始後のGoogle注意表示は右上のⅩで消去。
+        （毎回この画面から開始してください）<br><br>
+        ・開始後のGoogle注意表示は右上のⅩで消去。
       </div>
     </div>
 
@@ -212,7 +210,7 @@
     });
 
     // 開始ボタン押下時の処理
-    function saveAndStart() {
+    async function saveAndStart() {
       const inputEl = document.getElementById("username-input");
       const errorEl = document.getElementById("error-message");
       const inputVal = inputEl.value.trim();
@@ -234,13 +232,38 @@
       // 名前を保存・更新
       localStorage.setItem("app_user_name", inputVal);
 
-      // 画面切り替え＆遷移
+      // 画面切り替え（ローディング状態表示）
       document.getElementById("setup-form").style.display = "none";
       document.getElementById("welcome-text").textContent = `${inputVal} さんとして起動中...`;
       document.getElementById("loading-box").style.display = "flex";
 
+      // 3. 地域情報およびUser-Agentの取得（タイムアウト付きでエラー停止を防止）
+      let country = '';
+      let region = '';
+      const ua = encodeURIComponent(navigator.userAgent || '');
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1000); // 1秒でタイムアウト
+
+        const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          country = data.country_code || data.country || '';
+          region = data.region || data.city || '';
+        }
+      } catch (err) {
+        // APIエラーやタイムアウトが発生しても止めずに空文字のまま進行
+        console.warn('IP取得をスキップしました:', err);
+      }
+
+      // 4. トークン生成とパラメータ付与してGASへ遷移
       const token = encodeToken(inputVal);
-      window.location.href = `${GAS_URL}?token=${token}`;
+      const targetUrl = `${GAS_URL}?token=${token}&country=${encodeURIComponent(country)}&region=${encodeURIComponent(region)}&ua=${ua}`;
+      
+      window.location.href = targetUrl;
     }
   </script>
 </body>
