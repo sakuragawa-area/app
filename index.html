@@ -163,109 +163,127 @@
     </div>
   </div>
 
-  <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyZ-aT16KVxNBCUYjgcno3k-PASB_j0pY_8whziwxI5RKwgmZo8HABs6zVj6kTpK2C5sg/exec";
-    const SECRET_KEY = "SakuragawaSecretKey_";
+<script>
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbyZ-aT16KVxNBCUYjgcno3k-PASB_j0pY_8whziwxI5RKwgmZo8HABs6zVj6kTpK2C5sg/exec";
+  const SECRET_KEY = "SakuragawaSecretKey_";
 
-    // 暗号化関数
-    function encodeToken(text) {
-      const rawString = SECRET_KEY + text;
-      const bytes = new TextEncoder().encode(rawString);
-      const binString = String.fromCharCode(...bytes);
-      return btoa(binString)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-    }
+  // 暗号化関数
+  function encodeToken(text) {
+    const rawString = SECRET_KEY + text;
+    const bytes = new TextEncoder().encode(rawString);
+    const binString = String.fromCharCode(...bytes);
+    return btoa(binString)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  }
 
-    // 入力文字に応じてボタン表示を変更
-    function updateButtonText() {
-      const inputVal = document.getElementById("username-input").value.trim();
-      const btn = document.getElementById("submit-btn");
-      if (inputVal.length >= 3 && !/\s/.test(inputVal)) {
-        btn.textContent = `${inputVal} として開始`;
-      } else {
-        btn.textContent = "アプリを開始";
-      }
-    }
-
-    // 名前をローカルストレージから読み込んで入力欄とボタンを復元する共通関数
-    function restoreSavedName() {
-      const savedName = localStorage.getItem("app_user_name");
-      if (savedName) {
-        document.getElementById("username-input").value = savedName;
-        updateButtonText();
-      }
-    }
+  // 入力文字またはローカルストレージの値に応じてボタン表示を変更
+  function updateButtonText() {
+    const inputVal = document.getElementById("username-input").value.trim();
+    const savedName = localStorage.getItem("app_user_name") || "";
     
-    // 初回読み込み時
-    window.onload = function() {
-      restoreSavedName();
-    };
+    // 入力欄に値があるか、もしくは保存された名前があれば有効化
+    const effectiveName = inputVal || savedName;
+    const btn = document.getElementById("submit-btn");
+
+    if (effectiveName.length >= 3 && !/\s/.test(effectiveName)) {
+      btn.textContent = `${effectiveName} として開始`;
+    } else {
+      btn.textContent = "アプリを開始";
+    }
+  }
+
+  // 名前をローカルストレージから復元してセットする処理
+  function restoreSavedName() {
+    const savedName = localStorage.getItem("app_user_name");
+    if (savedName) {
+      const inputEl = document.getElementById("username-input");
+      inputEl.value = savedName;
+      updateButtonText();
+    }
+  }
+
+  // ページ読み込み時
+  window.onload = function() {
+    restoreSavedName();
+  };
+
+  // 戻るボタンでページが復元された際の処理（iOS Safari対策強化）
+  window.addEventListener("pageshow", function(event) {
+    document.getElementById("setup-form").style.display = "flex";
+    document.getElementById("loading-box").style.display = "none";
     
-    // 戻るボタン等でのページ復元時
-    window.addEventListener("pageshow", function(event) {
-      document.getElementById("setup-form").style.display = "flex";
-      document.getElementById("loading-box").style.display = "none";
+    // Safariの描画タイミングズレを防ぐため次フレームで実行
+    requestAnimationFrame(function() {
       restoreSavedName();
     });
+  });
 
-    // 開始ボタン押下時の処理
-    async function saveAndStart() {
-      const inputEl = document.getElementById("username-input");
-      const errorEl = document.getElementById("error-message");
-      const inputVal = inputEl.value.trim();
+  // 開始ボタン押下時の処理
+  async function saveAndStart() {
+    const inputEl = document.getElementById("username-input");
+    const errorEl = document.getElementById("error-message");
+    
+    let rawInput = inputEl.value;
+    const savedName = localStorage.getItem("app_user_name") || "";
 
-      errorEl.textContent = "";
-
-      // 1. 空白チェック
-      if (/\s/.test(inputEl.value)) {
-        errorEl.textContent = "空白は入れないでください";
-        return;
-      }
-
-      // 2. 文字数チェック（3文字未満）
-      if (inputVal.length < 3) {
-        errorEl.textContent = "名前の文字数が足りません";
-        return;
-      }
-
-      // 名前を保存・更新
-      localStorage.setItem("app_user_name", inputVal);
-
-      // 画面切り替え（ローディング状態表示）
-      document.getElementById("setup-form").style.display = "none";
-      document.getElementById("welcome-text").textContent = `${inputVal} さんとして起動中...`;
-      document.getElementById("loading-box").style.display = "flex";
-
-      // 3. 地域情報およびUser-Agentの取得（タイムアウト付きでエラー停止を防止）
-      let country = '';
-      let region = '';
-      const ua = encodeURIComponent(navigator.userAgent || '');
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1000); // 1秒でタイムアウト
-
-        const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const data = await res.json();
-          country = data.country_code || data.country || '';
-          region = data.region || data.city || '';
-        }
-      } catch (err) {
-        // APIエラーやタイムアウトが発生しても止めずに空文字のまま進行
-        console.warn('IP取得をスキップしました:', err);
-      }
-
-      // 4. トークン生成とパラメータ付与してGASへ遷移
-      const token = encodeToken(inputVal);
-      const targetUrl = `${GAS_URL}?token=${token}&country=${encodeURIComponent(country)}&region=${encodeURIComponent(region)}&ua=${ua}`;
-      
-      window.location.href = targetUrl;
+    // 1. 入力欄が空だが、ローカルストレージに名前がある場合は保存済みの名前を採用
+    if (!rawInput.trim() && savedName) {
+      rawInput = savedName;
+      inputEl.value = savedName; // 入力欄にも書き戻しを試みる
     }
-  </script>
+
+    const inputVal = rawInput.trim();
+    errorEl.textContent = "";
+
+    // 2. 空白チェック
+    if (/\s/.test(rawInput)) {
+      errorEl.textContent = "空白は入れないでください";
+      return;
+    }
+
+    // 3. 文字数チェック（3文字未満）
+    if (inputVal.length < 3) {
+      errorEl.textContent = "名前の文字数が足りません";
+      return;
+    }
+
+    // 名前を保存・更新
+    localStorage.setItem("app_user_name", inputVal);
+
+    // 画面切り替え（ローディング状態表示）
+    document.getElementById("setup-form").style.display = "none";
+    document.getElementById("welcome-text").textContent = `${inputVal} さんとして起動中...`;
+    document.getElementById("loading-box").style.display = "flex";
+
+    // 4. 地域情報およびUser-Agentの取得
+    let country = '';
+    let region = '';
+    const ua = encodeURIComponent(navigator.userAgent || '');
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000); // 1秒でタイムアウト
+
+      const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        country = data.country_code || data.country || '';
+        region = data.region || data.city || '';
+      }
+    } catch (err) {
+      console.warn('IP取得をスキップしました:', err);
+    }
+
+    // 5. トークン生成とパラメータ付与してGASへ遷移
+    const token = encodeToken(inputVal);
+    const targetUrl = `${GAS_URL}?token=${token}&country=${encodeURIComponent(country)}&region=${encodeURIComponent(region)}&ua=${ua}`;
+    
+    window.location.href = targetUrl;
+  }
+</script>
 </body>
 </html>
