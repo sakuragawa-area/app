@@ -189,19 +189,25 @@
       }
     }
 
-    // ページ読み込み時：ローカルストレージに名前があれば入力欄にセット
-    window.onload = function() {
+    // 名前をローカルストレージから読み込んで入力欄とボタンを復元する共通関数
+    function restoreSavedName() {
       const savedName = localStorage.getItem("app_user_name");
       if (savedName) {
         document.getElementById("username-input").value = savedName;
         updateButtonText();
       }
+    }
+    
+    // 初回読み込み時
+    window.onload = function() {
+      restoreSavedName();
     };
-
-    // 戻るボタンでページが復元された際のローディング解除処理
+    
+    // 戻るボタン等でのページ復元時
     window.addEventListener("pageshow", function(event) {
       document.getElementById("setup-form").style.display = "flex";
       document.getElementById("loading-box").style.display = "none";
+      restoreSavedName();
     });
 
     // 開始ボタン押下時の処理
